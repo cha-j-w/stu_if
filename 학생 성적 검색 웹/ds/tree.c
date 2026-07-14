@@ -176,14 +176,14 @@ static TreeNode *_insert(Tree *tree, int idx, void *data) {
     return cur;
   }
   while (1) {
+    if (idx == cur->idx) {
+      free(new);
+      cur->data->insert(cur->data, cur->data->last, data);
+      return cur;
+    }
     int smaller = idx < cur->idx;
     TreeNode *ncur = smaller ? cur->left : cur->right;
     if (ncur == NULL) {
-      if (idx == cur->idx) {
-        free(new);
-        cur->data->insert(cur->data, cur->data->last, data);
-        return cur;
-      }
       if (smaller) {
         cur->left = new;
       } else {
