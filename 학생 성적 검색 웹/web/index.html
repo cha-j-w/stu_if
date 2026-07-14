@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학생 관리 시스템</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', dotum, sans-serif;
+            background-color: #f9f9fb;
+            color: #333333;
+            margin: 0;
+            padding: 30px 15px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #3b5998;
+            font-size: 1.8rem;
+            margin-bottom: 35px;
+        }
+        .card {
+            background: #ffffff;
+            padding: 20px 25px;
+            border-radius: 8px;
+            border: 1px solid #dcdcdc;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        h2 {
+            font-size: 1.2rem;
+            color: #4e69a2;
+            margin-top: 0;
+            margin-bottom: 18px;
+            padding-left: 8px;
+            border-left: 4px solid #4e69a2;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #555555;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+            background-color: #ffffff;
+        }
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #4e69a2;
+        }
+        .btn {
+            background-color: #4e69a2;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: bold;
+            width: 100%;
+            transition: background 0.15s;
+        }
+        .btn:hover {
+            background-color: #3b5998;
+        }
+        .btn-warning {
+            background-color: #f0ad4e;
+            margin-top: 10px;
+        }
+        .btn-warning:hover {
+            background-color: #ec971f;
+        }
+        .btn-danger {
+            background-color: #d9534f;
+            margin-top: 10px;
+        }
+        .btn-danger:hover {
+            background-color: #c9302c;
+        }
+        .btn-download {
+            background-color: #4ddb4d;
+            margin-top: 10px;
+        }
+        .btn-download:hover {
+            background-color: #1ebe1e;
+        }
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+        .col {
+            flex: 1;
+        }
+        .search-container {
+            display: flex;
+            gap: 10px;
+        }
+        .search-container input {
+            flex: 1;
+        }
+        .search-container .btn {
+            width: 80px;
+            padding: 10px;
+        }
+        .result-box {
+            background: #f4f6f9;
+            border: 1px solid #e1e4e8;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+            margin-top: 15px;
+        }
+        .result-box .edit-fields {
+            margin-top: 15px;
+            border-top: 1px dashed #ccc;
+            padding-top: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            display: none;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #dddddd;
+            font-size: 0.9rem;
+        }
+        th {
+            background-color: #f2f4f7;
+            color: #333333;
+            font-weight: bold;
+        }
+        tr:hover td {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>학생 관리 시스템</h1>
+
+    <div class="card">
+        <h2>신규 학생 등록</h2>
+        <div class="row">
+            <div class="col form-group">
+                <label>학번</label>
+                <input type="text" id="addId" placeholder="학번 입력">
+            </div>
+            <div class="col form-group">
+                <label>이름</label>
+                <input type="text" id="addName" placeholder="이름 입력">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col form-group">
+                <label>수학 점수</label>
+                <input type="number" id="addMath" min="0" max="100" value="0">
+            </div>
+            <div class="col form-group">
+                <label>국어 점수</label>
+                <input type="number" id="addKorean" min="0" max="100" value="0">
+            </div>
+        </div>
+        <button class="btn" onclick="addStudent()">추가</button>
+    </div>
+
+    <div class="card">
+        <h2>학번으로 학생 조회 / 수정 / 삭제</h2>
+        <div class="form-group search-container">
+            <input type="text" id="searchId" placeholder="학번 입력">
+            <button class="btn" onclick="searchStudent()">검색</button>
+        </div>
+        
+        <div id="searchResult" class="result-box">
+            <p><strong>학번:</strong> <span id="resId"></span></p>
+            
+            <div class="edit-fields">
+                <div class="form-group">
+                    <label>이름 수정</label>
+                    <input type="text" id="editName">
+                </div>
+                <div class="row">
+                    <div class="col form-group">
+                        <label>수학 점수</label>
+                        <input type="number" id="editMath" min="0" max="100">
+                    </div>
+                    <div class="col form-group">
+                        <label>국어 점수</label>
+                        <input type="number" id="editKorean" min="0" max="100">
+                    </div>
+                </div>
+                <p><strong>현재 평균 점수:</strong> <span id="resAvg"></span>점</p>
+                <button class="btn btn-warning" onclick="updateStudent()">정보 수정하기</button>
+                <button class="btn btn-danger" onclick="deleteStudent()">학생 삭제하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>점수 범위 검색</h2>
+        <div class="row">
+            <div class="col form-group">
+                <label>검색 기준</label>
+                <input type="text" id="rangeType" placeholder="math / korean / average" value="average">
+            </div>
+            <div class="col form-group">
+                <label>최소 점수</label>
+                <input type="number" id="minScore" value="80">
+            </div>
+            <div class="col form-group">
+                <label>최대 점수</label>
+                <input type="number" id="maxScore" value="100">
+            </div>
+        </div>
+        <button class="btn" onclick="rangeSearch()">검색</button>
+        <button class="btn btn-download" onclick="download('students_range.txt', 'range')">다운로드</button>
+        
+        <table id="rangeTable">
+            <thead>
+                <tr>
+                    <th>학번</th>
+                    <th>이름</th>
+                    <th>수학</th>
+                    <th>국어</th>
+                    <th>평균</th>
+                </tr>
+            </thead>
+            <tbody id="rangeTableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>상위 N등 검색</h2>
+        <div class="row">
+            <div class="col form-group">
+                <label>검색 기준</label>
+                <input type="text" id="topType" placeholder="math / korean / average" value="average">
+            </div>
+            <div class="col form-group">
+                <label>등수</label>
+                <input type="number" id="count" value="80">
+            </div>
+        </div>
+        
+        <button class="btn" onclick="topSearch()">검색</button>
+        <button class="btn btn-download" onclick="download('students_top.txt', 'top')">다운로드</button>
+        
+        <table id="topTable">
+            <thead>
+                <tr>
+                    <th>등수</th>
+                    <th>학번</th>
+                    <th>이름</th>
+                    <th>수학</th>
+                    <th>국어</th>
+                    <th>평균</th>
+                </tr>
+            </thead>
+            <tbody id="topTableBody"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    let saveListRange = [];
+    let saveListTop = [];
+
+    // 1. 학생 등록
+    async function addStudent() {
+        const id = document.getElementById('addId').value;
+        const name = document.getElementById('addName').value;
+        const math = parseInt(document.getElementById('addMath').value);
+        const korean = parseInt(document.getElementById('addKorean').value);
+
+        if(!id || !name) { alert("학번과 이름을 입력해주세요."); return; }
+
+        try {
+            const response = await fetch('/api/student/insert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, name, math, korean })
+            });
+
+            if(response.ok) {
+                alert("등록되었습니다.");
+                document.getElementById('addId').value = '';
+                document.getElementById('addName').value = '';
+            } else { alert("등록 실패"); }
+        } catch(e) { alert("서버 연결 실패"); }
+    }
+
+    // 2. 학생 검색 및 폼 바인딩
+    async function searchStudent() {
+        const id = document.getElementById('searchId').value;
+        const resBox = document.getElementById('searchResult');
+        if(!id) return;
+
+        try {
+            const response = await fetch(`/api/student/find?id=${id}`);
+            if(!response.ok) { alert("해당 학생을 찾을 수 없습니다."); resBox.style.display="none"; return; }
+
+            const std = await response.json();
+            document.getElementById('resId').innerText = std.id;
+            document.getElementById('editName').value = std.name;
+            document.getElementById('editMath').value = std.math;
+            document.getElementById('editKorean').value = std.korean;
+            document.getElementById('resAvg').innerText = std.average/10;
+            resBox.style.display = "block";
+        } catch(e) { alert("서버 연결 실패"); }
+    }
+
+    // 3. 학생 정보 수정
+    async function updateStudent() {
+        const id = document.getElementById('resId').innerText;
+        const name = document.getElementById('editName').value;
+        const math = parseInt(document.getElementById('editMath').value);
+        const korean = parseInt(document.getElementById('editKorean').value);
+
+        if(!name) { alert("이름을 채워주세요."); return; }
+
+        try {
+            const response = await fetch('/api/student/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, name, math, korean })
+            });
+
+            if(response.ok) {
+                alert("수정되었습니다.");
+                searchStudent(); // 최신 데이터 재호출
+            } else { alert("수정 실패"); }
+        } catch(e) { alert("서버 연결 실패"); }
+    }
+
+    // 4. 학생 삭제
+    async function deleteStudent() {
+        const id = document.getElementById('resId').innerText;
+        if(!confirm("정말 이 학생의 정보를 완전히 삭제하겠습니까?")) return;
+
+        try {
+            const response = await fetch('/api/student/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+
+            if(response.ok) {
+                alert("삭제되었습니다.");
+                document.getElementById('searchResult').style.display = "none";
+                document.getElementById('searchId').value = "";
+            } else { alert("삭제 실패"); }
+        } catch(e) { alert("서버 연결 실패"); }
+    }
+
+    // 5. 범위 검색
+    async function rangeSearch() {
+        const type = document.getElementById('rangeType').value;
+        const min = document.getElementById('minScore').value;
+        const max = document.getElementById('maxScore').value;
+        const table = document.getElementById('rangeTable');
+        const tbody = document.getElementById('rangeTableBody');
+
+        try {
+            const response = await fetch(`/api/student/range?type=${type}&min=${min*10}&max=${max*10}`);
+            if(!response.ok) { alert("조회 실패"); return; }
+
+            const list = await response.json();
+            tbody.innerHTML = "";
+
+            if(list.length === 0) { alert("조건에 맞는 학생이 없습니다."); table.style.display="none"; return; }
+
+            saveListRange = [];
+            list.forEach(std => {
+                const row = `<tr>
+                    <td>${std.id}</td>
+                    <td>${std.name}</td>
+                    <td>${std.math}</td>
+                    <td>${std.korean}</td>
+                    <td>${std.average/10}</td>
+                </tr>`;
+                saveListRange.push(`${std.id},${std.name},${std.math},${std.korean}\n`);
+                tbody.innerHTML += row;
+            });
+            table.style.display = "table";
+        } catch(e) { alert("서버 연결 실패"); }
+    }
+
+    // 6. 상위 N등 검색
+    async function topSearch() {
+        const type = document.getElementById('topType').value;
+        const cnt = document.getElementById('count').value;
+        const table = document.getElementById('topTable');
+        const tbody = document.getElementById('topTableBody');
+
+        try {
+        const response = await fetch(`/api/student/top?type=${type}&count=${cnt}`);
+            if(!response.ok) { alert("조회 실패"); return; }
+
+            const list = await response.json();
+            tbody.innerHTML = "";
+
+            if(list.length === 0) { alert("조건에 맞는 학생이 없습니다."); table.style.display="none"; return; }
+
+            saveListTop = [];
+            list.forEach(std => {
+                const row = `<tr>
+                    <td>${std.rank}</td>
+                    <td>${std.id}</td>
+                    <td>${std.name}</td>
+                    <td>${std.math}</td>
+                    <td>${std.korean}</td>
+                    <td>${std.average/10}</td>
+                </tr>`;
+                saveListTop.push(`${std.id},${std.name},${std.math},${std.korean}\n`);
+                tbody.innerHTML += row;
+            });
+            table.style.display = "table";
+        } catch(e) { alert("서버 연결 실패"); }
+    }
+
+    function download(filename, type) {
+        let text = [];
+        if (type === 'range') {
+            text = saveListRange;
+        } else if (type === 'top') {
+            text = saveListTop;
+        }
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text.join('')));
+        element.setAttribute('download', filename);
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+        }
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -O2 -I./src
+TARGET = student_server
+
+# 컴파일할 소스 파일 목록
+SRCS = src/main.c src/mongoose.c src/cJSON.c \
+       src/ds/hashmap.c src/ds/linked_list.c src/ds/tree.c src/ds/mystr.c
+
+OBJS = $(SRCS:.c=.o)
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJS) $(TARGET)
