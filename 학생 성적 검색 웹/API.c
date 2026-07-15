@@ -6,18 +6,18 @@
 
 #pragma comment(lib, "shell32.lib")
 
-
 #ifdef _WIN32
-#include <windows.h>
 #include <shellapi.h>
+#include <windows.h>
 #endif
-
 
 extern Hashmap *initMap(void);
 extern Tree initTree(void);
 extern Linked_list initLList(void);
 extern void save_data_to_file(void);
 extern void load_data_from_file(void);
+
+static int max100(int x) { return x < 100 ? (x >= 0 ? x : 0) : 100; }
 
 static void server_event_handler(struct mg_connection *c, int ev,
                                  void *ev_data) {
@@ -72,8 +72,8 @@ static void server_event_handler(struct mg_connection *c, int ev,
     insert_student(studentMap, &studentList, &mathTree, &koreanTree,
                    &averageTree, cJSON_GetObjectItem(root, "id")->valuestring,
                    cJSON_GetObjectItem(root, "name")->valuestring,
-                   cJSON_GetObjectItem(root, "math")->valueint,
-                   cJSON_GetObjectItem(root, "korean")->valueint);
+                   max100(cJSON_GetObjectItem(root, "math")->valueint),
+                   max100(cJSON_GetObjectItem(root, "korean")->valueint));
     cJSON_Delete(root);
 
     save_data_to_file();
@@ -94,8 +94,8 @@ static void server_event_handler(struct mg_connection *c, int ev,
     edit_student(studentMap, &studentList, &mathTree, &koreanTree, &averageTree,
                  cJSON_GetObjectItem(root, "id")->valuestring,
                  cJSON_GetObjectItem(root, "name")->valuestring,
-                 cJSON_GetObjectItem(root, "math")->valueint,
-                 cJSON_GetObjectItem(root, "korean")->valueint);
+                 max100(cJSON_GetObjectItem(root, "math")->valueint),
+                 max100(cJSON_GetObjectItem(root, "korean")->valueint));
     cJSON_Delete(root);
 
     save_data_to_file();
@@ -285,8 +285,8 @@ int main(void) {
   printf("Server successfully started on http://localhost:8081\n");
 
 #ifdef _WIN32
-  printf("자동으로 브라우저 창을 연결합니다...\n");
-  ShellExecuteA(NULL, "open", "http://localhost:8081", NULL, NULL, SW_SHOWNORMAL);
+  ShellExecuteA(NULL, "open", "http://localhost:8081", NULL, NULL,
+                SW_SHOWNORMAL);
 #endif
 
   for (;;) {
