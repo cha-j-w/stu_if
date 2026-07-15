@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Architecture Slideshow</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #080c14;
+            --card-bg: rgba(16, 24, 48, 0.4);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary: #4f46e5;
+            --primary-glow: rgba(79, 70, 229, 0.4);
+            --secondary: #06b6d4;
+            --secondary-glow: rgba(6, 182, 212, 0.4);
+            --accent: #f43f5e;
+            --accent-glow: rgba(244, 63, 94, 0.4);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.4);
+            --text-color: #f3f4f6;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            user-select: none;
+        }
+
+        /* Ambient background glow */
+        .ambient-glow {
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(79, 70, 229, 0.12) 0%, rgba(0,0,0,0) 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Presentation Wrapper */
+        .presentation-container {
+            position: relative;
+            width: 96vw;
+            max-width: 1300px;
+            height: 88vh;
+            max-height: 850px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        /* Slides viewport */
+        .slides-viewport {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Individual slide (Split layout) */
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.98) translateY(10px);
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
+                        transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
+                        visibility 0.8s;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            padding: 40px 60px;
+            box-sizing: border-box;
+            gap: 50px;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1) translateY(0);
+        }
+
+        /* Split Sides */
+        .visual-side {
+            flex: 1.3;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .text-side {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Slide Titles */
+        .slide-header {
+            margin-bottom: 10px;
+        }
+
+        .slide-header .tag {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: var(--secondary);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .slide-header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(90deg, #ffffff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Presentation Cards */
+        .presentation-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 22px 24px;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .presentation-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.15);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #d1d5db;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 0;
+            transition: color 0.3s ease;
+        }
+
+        .presentation-card:hover .card-title {
+            color: var(--secondary);
+        }
+
+        .card-title .number-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--secondary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .presentation-card:hover .number-badge {
+            background: var(--secondary);
+            color: #080c14;
+            box-shadow: 0 0 10px var(--secondary-glow);
+        }
+
+        /* Control Panel */
+        .controls {
+            height: 80px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            box-sizing: border-box;
+            background: rgba(8, 12, 20, 0.6);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Indicators */
+        .indicators {
+            display: flex;
+            gap: 10px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .dot.active {
+            background: var(--secondary);
+            box-shadow: 0 0 10px var(--secondary-glow);
+            width: 28px;
+            border-radius: 5px;
+        }
+
+        /* Progress Bar */
+        .progress-bar-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 16.66%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 10px var(--secondary-glow);
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        svg.architecture-graphic {
+            width: 100%;
+            height: 100%;
+            max-height: 500px;
+        }
+
+        /* Glow effects for SVG elements */
+        .glow-blue { filter: drop-shadow(0px 0px 8px var(--secondary-glow)); }
+        .glow-indigo { filter: drop-shadow(0px 0px 8px var(--primary-glow)); }
+        .glow-rose { filter: drop-shadow(0px 0px 8px var(--accent-glow)); }
+        .glow-green { filter: drop-shadow(0px 0px 8px var(--success-glow)); }
+
+        /* Animation Keyframes */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 15px var(--secondary-glow)); }
+        }
+
+        @keyframes rotate-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -40; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes scan-horizontal {
+            0% { transform: translateX(0px); opacity: 0.2; }
+            50% { opacity: 1; }
+            100% { transform: translateX(350px); opacity: 0.2; }
+        }
+
+        @keyframes quick-jump {
+            0% { transform: scale(1); opacity: 0.3; }
+            20% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 12px var(--secondary-glow)); }
+            100% { transform: scale(1); opacity: 0.3; }
+        }
+
+        @keyframes pointer-wave {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(5px, -5px); }
+        }
+
+        /* Animated classes */
+        .pulse-node { animation: pulse 3s infinite ease-in-out; }
+        .rotate-gear { transform-origin: center; animation: rotate-slow 12s infinite linear; }
+        .flow-line { stroke-dasharray: 8, 4; animation: dash 2s infinite linear; }
+        .float-node { animation: float 4s infinite ease-in-out; }
+        .scanning-bar { animation: scan-horizontal 2.5s infinite linear; }
+        .jumping-target { animation: quick-jump 1.5s infinite ease-in-out; }
+        .pointer-arrow { animation: pointer-wave 3s infinite ease-in-out; }
+
+        .delay-1 { animation-delay: 0.8s; }
+        .delay-2 { animation-delay: 1.6s; }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+
+    <div class="presentation-container">
+        <!-- Progress Line -->
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <!-- Slides Viewport -->
+        <div class="slides-viewport">
+            
+            <!-- Slide 1: System Overview (Client-Server-DB Flow) -->
+            <div class="slide active" id="slide1">
+                <div class="visual-side">
+                    <svg class="architecture-graphic" viewBox="0 0 1000 600">
+                        <defs>
+                            <linearGradient id="grad-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#22d3ee" />
+                                <stop offset="100%" stop-color="#0891b2" />
+                            </linearGradient>
+                            <linearGradient id="grad-indigo" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#6366f1" />
+                                <stop offset="100%" stop-color="#4338ca" />
+                            </linearGradient>
+                            <linearGradient id="grad-rose" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#fb7185" />
+                                <stop offset="100%" stop-color="#be123c" />
+                            </linearGradient>
+                            <linearGradient id="grad-green" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#34d399" />
+                                <stop offset="100%" stop-color="#059669" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Client Node (Left) -->
+                        <g class="float-node">
+                            <rect x="100" y="200" width="160" height="200" rx="20" fill="var(--card-bg)" stroke="url(#grad-blue)" stroke-width="2" class="glow-blue"/>
+                            <rect x="120" y="230" width="120" height="90" rx="8" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                            <line x1="180" y1="320" x2="180" y2="360" stroke="#22d3ee" stroke-width="3" />
+                            <line x1="150" y1="360" x2="210" y2="360" stroke="#22d3ee" stroke-width="3" />
+                            <circle cx="180" cy="275" r="10" fill="url(#grad-blue)" class="pulse-node" />
+                            <text x="180" y="385" fill="#f3f4f6" text-anchor="middle" font-size="14" font-weight="600" opacity="0.8">CLIENT</text>
+                        </g>
+
+                        <!-- Flow Lines: Client -> Server -->
+                        <path d="M 270 270 L 440 270" fill="none" stroke="#22d3ee" stroke-width="3" class="flow-line" />
+                        <path d="M 440 330 L 270 330" fill="none" stroke="#6366f1" stroke-width="3" class="flow-line" />
+
+                        <!-- Server Node (Center) -->
+                        <g class="float-node delay-1">
+                            <rect x="450" y="180" width="180" height="240" rx="24" fill="var(--card-bg)" stroke="url(#grad-indigo)" stroke-width="2" class="glow-indigo"/>
+                            <rect x="475" y="220" width="130" height="30" rx="6" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <circle cx="495" cy="235" r="4" fill="#10b981" />
+                            <line x1="515" y1="235" x2="585" y2="235" stroke="rgba(255,255,255,0.2)" stroke-width="3" stroke-linecap="round"/>
+
+                            <rect x="475" y="270" width="130" height="30" rx="6" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <circle cx="495" cy="285" r="4" fill="#3b82f6" />
+                            <line x1="515" y1="285" x2="585" y2="285" stroke="rgba(255,255,255,0.2)" stroke-width="3" stroke-linecap="round"/>
+
+                            <rect x="475" y="320" width="130" height="30" rx="6" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <circle cx="495" cy="335" r="4" fill="#fb7185" />
+                            <line x1="515" y1="335" x2="585" y2="335" stroke="rgba(255,255,255,0.2)" stroke-width="3" stroke-linecap="round"/>
+                            <text x="540" y="405" fill="#f3f4f6" text-anchor="middle" font-size="14" font-weight="600" opacity="0.8">SERVER (Mongoose)</text>
+                        </g>
+
+                        <!-- Flow Lines: Server -> Database -->
+                        <path d="M 640 270 L 800 270" fill="none" stroke="#6366f1" stroke-width="3" class="flow-line" />
+                        <path d="M 800 330 L 640 330" fill="none" stroke="#fb7185" stroke-width="3" class="flow-line" />
+
+                        <!-- Database Node (Right) -->
+                        <g class="float-node delay-2">
+                            <rect x="810" y="200" width="150" height="200" rx="20" fill="var(--card-bg)" stroke="url(#grad-rose)" stroke-width="2" class="glow-rose"/>
+                            <ellipse cx="885" cy="250" rx="45" ry="15" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                            <path d="M 840 250 A 45 15 0 0 0 930 250 L 930 290 A 45 15 0 0 1 840 290 Z" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                            <path d="M 840 290 A 45 15 0 0 0 930 290 L 930 330 A 45 15 0 0 1 840 330 Z" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                            <circle cx="885" cy="250" r="6" fill="url(#grad-rose)" class="pulse-node" />
+                            <text x="885" y="385" fill="#f3f4f6" text-anchor="middle" font-size="14" font-weight="600" opacity="0.8">DATABASE</text>
+                        </g>
+                    </svg>
+                </div>
+                <div class="text-side">
+                    <div class="slide-header">
+                        <span class="tag">01. Overview</span>
+                        <h2>실시간 학생 성적 검색 시스템</h2>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">A</div>
+                            학업 성적 관리용 고속 데이터베이스
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">B</div>
+                            범용 데이터베이스 엔진으로서의 가치
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 2: The Bottleneck (Linear List ONLY vs Multi-Index Custom DS) -->
+            <div class="slide" id="slide2">
+                <div class="visual-side">
+                    <svg class="architecture-graphic" viewBox="0 0 1000 600">
+                        <!-- Top Half: Traditional Array/List Bottleneck (Linear Scanning) -->
+                        <g>
+                            <rect x="50" y="60" width="900" height="200" rx="20" fill="rgba(244, 63, 94, 0.05)" stroke="rgba(244, 63, 94, 0.2)" stroke-width="1.5" />
+                            <circle cx="95" cy="160" r="22" fill="#be123c" opacity="0.8" class="pulse-node" />
+                            <path d="M 95 147 L 95 163 M 95 171 L 95 173" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" />
+
+                            <g transform="translate(180, 130)">
+                                <rect x="0" y="15" width="45" height="35" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                                <rect x="80" y="15" width="45" height="35" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                                <rect x="160" y="15" width="45" height="35" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                                <rect x="240" y="15" width="45" height="35" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                                <rect x="320" y="15" width="45" height="35" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                                <rect x="400" y="15" width="45" height="35" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                                <rect x="480" y="15" width="45" height="35" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                                <rect x="560" y="15" width="45" height="35" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                                <path d="M 45 32 L 80 32 M 125 32 L 160 32 M 205 32 L 240 32 M 285 32 L 320 32 M 365 32 L 400 32 M 445 32 L 480 32 M 525 32 L 560 32" fill="none" stroke="#fb7185" stroke-width="2" />
+                                <line x1="20" y1="0" x2="20" y2="65" stroke="#fb7185" stroke-width="3" class="scanning-bar glow-rose" />
+                            </g>
+
+                            <circle cx="850" cy="160" r="22" fill="#080c14" stroke="#fb7185" stroke-width="2" />
+                            <path d="M 850 148 L 850 160 L 860 165" stroke="#fb7185" stroke-width="2.5" stroke-linecap="round" />
+
+                            <text x="500" y="95" fill="#fb7185" text-anchor="middle" font-size="16" font-weight="600">Single Linked List (No Index)</text>
+                            <text x="500" y="240" fill="rgba(255, 255, 255, 0.4)" text-anchor="middle" font-size="13">O(N) Search / O(N log N) Sort Bottleneck</text>
+                        </g>
+
+                        <!-- Bottom Half: Custom Multi-Index -->
+                        <g>
+                            <rect x="50" y="320" width="900" height="220" rx="20" fill="rgba(16, 185, 129, 0.05)" stroke="rgba(16, 185, 129, 0.2)" stroke-width="1.5" />
+                            <circle cx="95" cy="430" r="22" fill="#059669" opacity="0.8" class="pulse-node" />
+                            <path d="M 85 430 L 92 437 L 107 422" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+
+                            <g transform="translate(180, 360)">
+                                <rect x="0" y="5" width="25" height="110" rx="4" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                                <line x1="0" y1="32" x2="25" y2="32" stroke="#22d3ee" stroke-width="1" />
+                                <line x1="0" y1="59" x2="25" y2="59" stroke="#22d3ee" stroke-width="1" />
+                                <line x1="0" y1="86" x2="25" y2="86" stroke="#22d3ee" stroke-width="1" />
+                                <path d="M -30 60 Q 20 60 70 86" fill="none" stroke="#22d3ee" stroke-dasharray="4,3" stroke-width="2" />
+                                <circle cx="70" cy="86" r="6" fill="#22d3ee" class="glow-blue pulse-node" />
+                                <rect x="75" y="73" width="40" height="26" rx="4" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                                <circle cx="95" cy="86" r="4" fill="#22d3ee" />
+                            </g>
+
+                            <g transform="translate(480, 340)">
+                                <circle cx="80" cy="30" r="12" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                                <line x1="72" y1="39" x2="48" y2="71" stroke="#10b981" stroke-width="1.5" />
+                                <line x1="88" y1="39" x2="112" y2="71" stroke="#10b981" stroke-width="1.5" />
+                                <circle cx="40" cy="80" r="12" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                                <circle cx="120" cy="80" r="12" fill="#080c14" stroke="#10b981" stroke-width="2" class="glow-green jumping-target" />
+                                <line x1="32" y1="89" x2="18" y2="121" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.3" />
+                                <line x1="48" y1="89" x2="62" y2="121" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.3" />
+                                <circle cx="10" cy="130" r="10" fill="#080c14" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.3" />
+                                <circle cx="70" cy="130" r="10" fill="#080c14" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.3" />
+                            </g>
+
+                            <circle cx="850" cy="430" r="22" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                            <path d="M 850 415 L 840 432 L 852 432 L 848 447 L 860 428 L 848 428 Z" fill="#10b981" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round" />
+
+                            <text x="500" y="350" fill="#10b981" text-anchor="middle" font-size="16" font-weight="600">Custom Multi-Index Data Structures</text>
+                            <text x="260" y="515" fill="#22d3ee" text-anchor="middle" font-size="13" font-weight="600">HashMap: O(1) Instant Search</text>
+                            <text x="600" y="515" fill="#10b981" text-anchor="middle" font-size="13" font-weight="600">AVL Tree: O(log N) Auto-Sort & Range</text>
+                        </g>
+                    </svg>
+                </div>
+                <div class="text-side">
+                    <div class="slide-header">
+                        <span class="tag">02. Problem Statement</span>
+                        <h2>기존 단일 자료구조(리스트)의 한계</h2>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">1</div>
+                            단순 선형 리스트의 조회 속도 저하 (O(N))
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">2</div>
+                            실시간 정렬 및 석차 계산 오버헤드 (O(N log N))
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">3</div>
+                            교무 행정 조회 및 통계 지연 발생
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 3: Database Structure (Hashmap, Tree, Linked List) -->
+            <div class="slide" id="slide3">
+                <div class="visual-side">
+                    <svg class="architecture-graphic" viewBox="0 0 1000 600">
+                        <!-- Central Core Data Node -->
+                        <circle cx="500" cy="300" r="50" fill="var(--card-bg)" stroke="url(#grad-indigo)" stroke-width="3" class="glow-indigo pulse-node" />
+                        <rect x="480" y="285" width="40" height="30" rx="4" fill="none" stroke="#6366f1" stroke-width="2" />
+                        <line x1="488" y1="293" x2="512" y2="293" stroke="#6366f1" stroke-width="2" />
+                        <line x1="488" y1="300" x2="512" y2="300" stroke="#6366f1" stroke-width="2" />
+                        <line x1="488" y1="307" x2="505" y2="307" stroke="#6366f1" stroke-width="2" />
+                        <text x="500" y="375" fill="#6366f1" text-anchor="middle" font-size="14" font-weight="600">STUDENT RECORD</text>
+
+                        <!-- Core -> Hashmap line -->
+                        <line x1="450" y1="280" x2="230" y2="150" stroke="#22d3ee" stroke-width="2.5" stroke-dasharray="6,4" />
+                        <!-- Core -> Linked List line -->
+                        <line x1="450" y1="310" x2="210" y2="440" stroke="#fb7185" stroke-width="2.5" stroke-dasharray="6,4" />
+                        <!-- Core -> AVL Tree line -->
+                        <line x1="550" y1="300" x2="710" y2="300" stroke="#10b981" stroke-width="2.5" stroke-dasharray="6,4" />
+
+                        <!-- Structure 1: Hashmap (Top Left) -->
+                        <g class="float-node">
+                            <rect x="50" y="60" width="180" height="150" rx="16" fill="var(--card-bg)" stroke="#22d3ee" stroke-width="2" class="glow-blue"/>
+                            <rect x="70" y="90" width="30" height="24" rx="4" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                            <rect x="70" y="120" width="30" height="24" rx="4" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                            <rect x="70" y="150" width="30" height="24" rx="4" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                            <path d="M 100 102 L 140 102" fill="none" stroke="#22d3ee" stroke-width="2" />
+                            <circle cx="150" cy="102" r="10" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                            <path d="M 160 102 L 190 102" fill="none" stroke="#22d3ee" stroke-width="2" />
+                            <circle cx="200" cy="102" r="10" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                            <circle cx="150" cy="162" r="10" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                            <path d="M 100 162 L 140 162" fill="none" stroke="#22d3ee" stroke-width="2" />
+                            <text x="140" y="50" fill="#22d3ee" text-anchor="middle" font-size="14" font-weight="600">HASHMAP</text>
+                        </g>
+
+                        <!-- Structure 2: Linked List (Bottom Left) -->
+                        <g class="float-node delay-2">
+                            <rect x="50" y="380" width="180" height="140" rx="16" fill="var(--card-bg)" stroke="#fb7185" stroke-width="2" class="glow-rose"/>
+                            <rect x="75" y="415" width="35" height="25" rx="4" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                            <path d="M 110 427 L 130 427" fill="none" stroke="#fb7185" stroke-width="2" />
+                            <rect x="130" y="415" width="35" height="25" rx="4" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                            <path d="M 165 427 L 185 427" fill="none" stroke="#fb7185" stroke-width="2" />
+                            <rect x="130" y="470" width="35" height="25" rx="4" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                            <path d="M 147 440 L 147 470" fill="none" stroke="#fb7185" stroke-width="2" />
+                            <text x="140" y="545" fill="#fb7185" text-anchor="middle" font-size="14" font-weight="600">LINKED LIST</text>
+                        </g>
+
+                        <!-- Structure 3: AVL Tree (Right) -->
+                        <g class="float-node delay-1">
+                            <rect x="710" y="100" width="280" height="400" rx="20" fill="var(--card-bg)" stroke="#10b981" stroke-width="2" style="filter: drop-shadow(0px 0px 8px rgba(16, 185, 129, 0.4));"/>
+                            <circle cx="850" cy="160" r="16" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                            <line x1="838" y1="172" x2="802" y2="218" stroke="#10b981" stroke-width="2" />
+                            <line x1="862" y1="172" x2="898" y2="218" stroke="#10b981" stroke-width="2" />
+                            <circle cx="790" cy="230" r="16" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                            <circle cx="910" cy="230" r="16" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                            <line x1="778" y1="242" x2="752" y2="288" stroke="#10b981" stroke-width="2" />
+                            <line x1="802" y1="242" x2="828" y2="288" stroke="#10b981" stroke-width="2" />
+                            <line x1="898" y1="242" x2="872" y2="288" stroke="#10b981" stroke-width="2" />
+                            <line x1="922" y1="242" x2="948" y2="288" stroke="#10b981" stroke-width="2" />
+                            <circle cx="740" cy="300" r="16" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                            <circle cx="840" cy="300" r="16" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                            <circle cx="860" cy="300" r="16" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                            <circle cx="960" cy="300" r="16" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                            <text x="850" y="525" fill="#10b981" text-anchor="middle" font-size="14" font-weight="600">AVL TREES</text>
+                        </g>
+                    </svg>
+                </div>
+                <div class="text-side">
+                    <div class="slide-header">
+                        <span class="tag">03. Core Solution</span>
+                        <h2>해결책: 수동 구현 다중 자료구조(Multi-Index)</h2>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">1</div>
+                            다중 자료구조의 융합을 통한 성능 최적화
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">2</div>
+                            HashMap: 학번 기준 O(1) 초고속 검색
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">3</div>
+                            AVL Trees: 성적순 정렬 상태 실시간 유지 (O(log N))
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 4: Data Sync on Update/Insert (Validation) -->
+            <div class="slide" id="slide4">
+                <div class="visual-side">
+                    <svg class="architecture-graphic" viewBox="0 0 1000 600">
+                        <!-- Input block -->
+                        <g class="float-node">
+                            <rect x="50" y="250" width="140" height="100" rx="16" fill="var(--card-bg)" stroke="#22d3ee" stroke-width="2" class="glow-blue" />
+                            <rect x="70" y="270" width="100" height="15" rx="3" fill="#080c14" stroke="#22d3ee" stroke-width="1" />
+                            <rect x="70" y="295" width="100" height="15" rx="3" fill="#080c14" stroke="#22d3ee" stroke-width="1" />
+                            <rect x="70" y="320" width="60" height="15" rx="3" fill="#080c14" stroke="#22d3ee" stroke-width="1" />
+                            <text x="120" y="380" fill="#22d3ee" text-anchor="middle" font-size="13" font-weight="600">New Student</text>
+                        </g>
+
+                        <!-- Connector lines splitting from Input to structures -->
+                        <path d="M 190 300 Q 300 150 450 120" fill="none" stroke="#6366f1" stroke-width="3" class="flow-line" />
+                        <path d="M 190 300 Q 300 240 450 240" fill="none" stroke="#6366f1" stroke-width="3" class="flow-line" />
+                        <path d="M 190 300 Q 300 360 450 360" fill="none" stroke="#6366f1" stroke-width="3" class="flow-line" />
+                        <path d="M 190 300 Q 300 450 450 480" fill="none" stroke="#fb7185" stroke-width="3" class="flow-line" />
+
+                        <!-- Target 1: Hashmap (Top Right) -->
+                        <g class="float-node delay-1">
+                            <rect x="460" y="70" width="300" height="80" rx="12" fill="var(--card-bg)" stroke="#6366f1" stroke-width="1.5" />
+                            <rect x="480" y="95" width="30" height="30" rx="4" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <rect x="520" y="95" width="30" height="30" rx="4" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <rect x="560" y="95" width="30" height="30" rx="4" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <circle cx="640" cy="110" r="10" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <path d="M 590 110 L 630 110" stroke="#6366f1" stroke-width="2" />
+                            <circle cx="700" cy="110" r="10" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <path d="M 650 110 L 690 110" stroke="#6366f1" stroke-width="2" />
+                            <text x="610" y="60" fill="#6366f1" text-anchor="middle" font-size="13" font-weight="600">1. HashMap (ID Index)</text>
+                        </g>
+
+                        <!-- Target 2: Linked List (Upper Mid Right) -->
+                        <g class="float-node delay-2">
+                            <rect x="460" y="190" width="300" height="80" rx="12" fill="var(--card-bg)" stroke="#6366f1" stroke-width="1.5" />
+                            <circle cx="490" cy="230" r="12" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <path d="M 502 230 L 538 230" stroke="#6366f1" stroke-width="2" />
+                            <circle cx="550" cy="230" r="12" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <path d="M 562 230 L 598 230" stroke="#6366f1" stroke-width="2" />
+                            <circle cx="610" cy="230" r="12" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <path d="M 622 230 L 658 230" stroke="#6366f1" stroke-width="2" />
+                            <circle cx="670" cy="230" r="12" fill="#080c14" stroke="#6366f1" stroke-width="1.5" />
+                            <text x="610" y="180" fill="#6366f1" text-anchor="middle" font-size="13" font-weight="600">2. Linked List (Traversal)</text>
+                        </g>
+
+                        <!-- Target 3: 3 AVL Trees (Lower Mid Right) -->
+                        <g class="float-node delay-1">
+                            <rect x="460" y="310" width="300" height="110" rx="12" fill="var(--card-bg)" stroke="#6366f1" stroke-width="1.5" />
+                            <circle cx="510" cy="340" r="8" fill="#080c14" stroke="#10b981" stroke-width="1.5" />
+                            <circle cx="495" cy="365" r="8" fill="#080c14" stroke="#10b981" stroke-width="1.5" />
+                            <circle cx="525" cy="365" r="8" fill="#080c14" stroke="#10b981" stroke-width="1.5" />
+                            <line x1="505" y1="346" x2="498" y2="359" stroke="#10b981" stroke-width="1.2" />
+                            <line x1="515" y1="346" x2="522" y2="359" stroke="#10b981" stroke-width="1.2" />
+
+                            <circle cx="600" cy="340" r="8" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                            <circle cx="585" cy="365" r="8" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                            <circle cx="615" cy="365" r="8" fill="#080c14" stroke="#22d3ee" stroke-width="1.5" />
+                            <line x1="595" y1="346" x2="588" y2="359" stroke="#22d3ee" stroke-width="1.2" />
+                            <line x1="605" y1="346" x2="612" y2="359" stroke="#22d3ee" stroke-width="1.2" />
+
+                            <circle cx="690" cy="340" r="8" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                            <circle cx="675" cy="365" r="8" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                            <circle cx="705" cy="365" r="8" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                            <line x1="685" y1="346" x2="678" y2="359" stroke="#fb7185" stroke-width="1.2" />
+                            <line x1="695" y1="346" x2="702" y2="359" stroke="#fb7185" stroke-width="1.2" />
+                            <text x="610" y="300" fill="#6366f1" text-anchor="middle" font-size="13" font-weight="600">3. AVL Trees (Score Index)</text>
+                        </g>
+
+                        <!-- Target 4: Text File (Bottom Right) -->
+                        <g class="float-node delay-2">
+                            <rect x="460" y="450" width="300" height="80" rx="12" fill="var(--card-bg)" stroke="#fb7185" stroke-width="1.5" />
+                            <rect x="580" y="465" width="40" height="50" rx="4" fill="#080c14" stroke="#fb7185" stroke-width="1.5" />
+                            <line x1="590" y1="478" x2="610" y2="478" stroke="#fb7185" stroke-width="1.5" />
+                            <line x1="590" y1="486" x2="610" y2="486" stroke="#fb7185" stroke-width="1.5" />
+                            <line x1="590" y1="494" x2="605" y2="494" stroke="#fb7185" stroke-width="1.5" />
+                            <text x="610" y="440" fill="#fb7185" text-anchor="middle" font-size="13" font-weight="600">4. students.txt (Persistent)</text>
+                        </g>
+                    </svg>
+                </div>
+                <div class="text-side">
+                    <div class="slide-header">
+                        <span class="tag">04. Validation</span>
+                        <h2>다양한 자료구조 구축의 압도적인 장점</h2>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">1</div>
+                            자료구조가 잘 맞물려 가동될 때의 극적인 속도
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">2</div>
+                            데이터 정합성 및 디스크 즉각 동기화
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">3</div>
+                            메모리 낭비와 연산 지연(Latency) 제로화
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 5: Memory & Pointer Mastery -->
+            <div class="slide" id="slide5">
+                <div class="visual-side">
+                    <svg class="architecture-graphic" viewBox="0 0 1000 600">
+                        <!-- Left Side: Memory Address Space Allocation (RAM Grid) -->
+                        <g>
+                            <rect x="80" y="70" width="400" height="420" rx="20" fill="var(--card-bg)" stroke="#22d3ee" stroke-width="2" class="glow-blue" />
+                            <text x="280" y="110" fill="#22d3ee" text-anchor="middle" font-size="16" font-weight="600">Memory Address Grid (RAM)</text>
+
+                            <g transform="translate(115, 140)">
+                                <rect x="0" y="0" width="70" height="50" rx="6" fill="#080c14" stroke="rgba(34, 211, 238, 0.4)" stroke-width="1.5" />
+                                <text x="35" y="30" fill="rgba(34, 211, 238, 0.6)" text-anchor="middle" font-size="11">0x7ffd00</text>
+                                <rect x="85" y="0" width="70" height="50" rx="6" fill="#080c14" stroke="rgba(34, 211, 238, 0.4)" stroke-width="1.5" />
+                                <text x="120" y="30" fill="rgba(34, 211, 238, 0.6)" text-anchor="middle" font-size="11">0x7ffd08</text>
+                                <rect x="170" y="0" width="70" height="50" rx="6" fill="#080c14" stroke="rgba(34, 211, 238, 0.4)" stroke-width="1.5" />
+                                <text x="205" y="30" fill="rgba(34, 211, 238, 0.6)" text-anchor="middle" font-size="11">0x7ffd10</text>
+
+                                <rect x="0" y="65" width="70" height="50" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="2" class="glow-rose pulse-node" />
+                                <text x="35" y="95" fill="#fb7185" text-anchor="middle" font-size="11" font-weight="600">NODE A</text>
+                                <rect x="85" y="65" width="70" height="50" rx="6" fill="#080c14" stroke="rgba(34, 211, 238, 0.2)" stroke-width="1" />
+                                <rect x="170" y="65" width="70" height="50" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="2" class="glow-rose pulse-node delay-1" />
+                                <text x="205" y="95" fill="#fb7185" text-anchor="middle" font-size="11" font-weight="600">NODE B</text>
+
+                                <rect x="0" y="130" width="70" height="50" rx="6" fill="#080c14" stroke="rgba(34, 211, 238, 0.4)" stroke-width="1.5" />
+                                <text x="35" y="160" fill="rgba(34, 211, 238, 0.6)" text-anchor="middle" font-size="11">0x7ffd30</text>
+                                <rect x="85" y="130" width="70" height="50" rx="6" fill="#080c14" stroke="rgba(34, 211, 238, 0.4)" stroke-width="1.5" />
+                                <text x="120" y="160" fill="rgba(34, 211, 238, 0.6)" text-anchor="middle" font-size="11">0x7ffd38</text>
+                                <rect x="170" y="130" width="70" height="50" rx="6" fill="#080c14" stroke="rgba(34, 211, 238, 0.4)" stroke-width="1.5" />
+                                <text x="205" y="160" fill="rgba(34, 211, 238, 0.6)" text-anchor="middle" font-size="11">0x7ffd40</text>
+
+                                <rect x="0" y="195" width="240" height="60" rx="8" fill="rgba(16, 185, 129, 0.1)" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,3" />
+                                <text x="120" y="230" fill="#10b981" text-anchor="middle" font-size="14" font-weight="600">malloc() & free()</text>
+                            </g>
+                            <text x="280" y="460" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-size="13">Dynamic Memory Allocation & Heap Management</text>
+                        </g>
+
+                        <!-- Right Side: Pointer Dereferencing & Indirection (Pointers, Rotations) -->
+                        <g>
+                            <rect x="520" y="70" width="400" height="420" rx="20" fill="var(--card-bg)" stroke="#10b981" stroke-width="2" class="glow-green" />
+                            <text x="720" y="110" fill="#10b981" text-anchor="middle" font-size="16" font-weight="600">Pointer Manipulation & Rotations</text>
+
+                            <g transform="translate(580, 150)">
+                                <circle cx="30" cy="50" r="22" fill="#080c14" stroke="#6366f1" stroke-width="2" />
+                                <text x="30" y="55" fill="#6366f1" text-anchor="middle" font-size="14" font-weight="600">**pp</text>
+                                <path d="M 52 50 L 98 50" fill="none" stroke="#6366f1" stroke-width="2.5" class="pointer-arrow" />
+                                <polygon points="98,50 90,45 90,55" fill="#6366f1" />
+                                <circle cx="120" cy="50" r="22" fill="#080c14" stroke="#22d3ee" stroke-width="2" />
+                                <text x="120" y="55" fill="#22d3ee" text-anchor="middle" font-size="14" font-weight="600">*p</text>
+                                <path d="M 142 50 L 208 50" fill="none" stroke="#22d3ee" stroke-width="2.5" class="pointer-arrow delay-1" />
+                                <polygon points="208,50 200,45 200,55" fill="#22d3ee" />
+                                <rect x="210" y="32" width="60" height="36" rx="6" fill="#080c14" stroke="#fb7185" stroke-width="2" class="glow-rose" />
+                                <text x="240" y="55" fill="#fb7185" text-anchor="middle" font-size="12" font-weight="600">NODE</text>
+                            </g>
+
+                            <g transform="translate(580, 260)">
+                                <circle cx="120" cy="40" r="14" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                                <text x="120" y="44" fill="#10b981" text-anchor="middle" font-size="11">P</text>
+                                <path d="M 110 50 Q 80 80 50 110" fill="none" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.5" />
+                                <path d="M 130 50 Q 160 80 190 110" fill="none" stroke="#10b981" stroke-width="2.5" class="flow-line" />
+                                <circle cx="40" cy="120" r="14" fill="#080c14" stroke="#10b981" stroke-width="2" />
+                                <text x="40" y="124" fill="#10b981" text-anchor="middle" font-size="11">L</text>
+                                <circle cx="200" cy="120" r="14" fill="#080c14" stroke="#10b981" stroke-width="2" class="glow-green pulse-node" />
+                                <text x="200" y="124" fill="#10b981" text-anchor="middle" font-size="11">R</text>
+                                <path d="M 70 120 Q 120 150 170 120" fill="none" stroke="#22d3ee" stroke-width="2" stroke-dasharray="4,3" />
+                                <polygon points="170,120 160,117 165,126" fill="#22d3ee" />
+                            </g>
+                            <text x="720" y="460" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-size="13">Pointer Relinking, Double Pointers & Balancing Rotations</text>
+                        </g>
+                    </svg>
+                </div>
+                <div class="text-side">
+                    <div class="slide-header">
+                        <span class="tag">05. Learning Outcomes</span>
+                        <h2>C 포인터와 메모리 관리 마스터리</h2>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">1</div>
+                            힙 영역 메모리(malloc/free)의 완전 통제
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">2</div>
+                            이중 포인터를 활용한 동적 링크 관리
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">3</div>
+                            메모리 디버깅 및 시스템 제어 능력 배양
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 6: Target Audience & Future Extensibility -->
+            <div class="slide" id="slide6">
+                <div class="visual-side">
+                    <svg class="architecture-graphic" viewBox="0 0 1000 600">
+                        <!-- Hexagonal center graphic for vision -->
+                        <polygon points="500,200 620,270 620,390 500,460 380,390 380,270" fill="var(--card-bg)" stroke="url(#grad-indigo)" stroke-width="2.5" class="glow-indigo pulse-node" />
+                        
+                        <circle cx="500" cy="330" r="35" fill="#080c14" stroke="#6366f1" stroke-width="2" />
+                        <path d="M 300 230" stroke="#6366f1" stroke-width="2" />
+                        <path d="M 500 295 L 500 365 M 465 330 L 535 330" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" />
+
+                        <!-- Extensions lines outwards -->
+                        <line x1="500" y1="200" x2="500" y2="100" stroke="#22d3ee" stroke-width="3.5" stroke-linecap="round" class="flow-line" />
+                        <line x1="620" y1="330" x2="780" y2="330" stroke="#10b981" stroke-width="3.5" stroke-linecap="round" class="flow-line" />
+                        <line x1="500" y1="460" x2="500" y2="540" stroke="#fb7185" stroke-width="3.5" stroke-linecap="round" class="flow-line" />
+
+                        <!-- External endpoints (Future expansion modules) -->
+                        <circle cx="500" cy="90" r="22" fill="#080c14" stroke="#22d3ee" stroke-width="2.5" class="glow-blue" />
+                        <circle cx="800" cy="330" r="22" fill="#080c14" stroke="#10b981" stroke-width="2.5" class="glow-green" />
+                        <circle cx="500" cy="550" r="22" fill="#080c14" stroke="#fb7185" stroke-width="2.5" class="glow-rose" />
+
+                        <text x="500" y="55" fill="#22d3ee" text-anchor="middle" font-size="13" font-weight="600">GAME MATCHING</text>
+                        <text x="800" y="375" fill="#10b981" text-anchor="middle" font-size="13" font-weight="600">FINANCIAL ENGINE</text>
+                        <text x="500" y="595" fill="#fb7185" text-anchor="middle" font-size="13" font-weight="600">NoSQL DBMS INDEX</text>
+                    </svg>
+                </div>
+                <div class="text-side">
+                    <div class="slide-header">
+                        <span class="tag">06. Target & Extensibility</span>
+                        <h2>교사를 위한 설계, 그리고 무한한 확장성</h2>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">1</div>
+                            기본 설계: 교사의 편리한 성적/랭크 관리
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">2</div>
+                            도메인 전환: 자료구조 뼈대를 이용한 빠른 개조
+                        </div>
+                    </div>
+                    <div class="presentation-card">
+                        <div class="card-title">
+                            <div class="number-badge">3</div>
+                            미래 확장: 게임 서버, 금융 주문서, NoSQL 인덱스
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Controls View -->
+        <div class="controls">
+            <!-- Indicators (Progress dots) -->
+            <div class="indicators" id="indicators">
+                <div class="dot active" onclick="jumpToSlide(0)"></div>
+                <div class="dot" onclick="jumpToSlide(1)"></div>
+                <div class="dot" onclick="jumpToSlide(2)"></div>
+                <div class="dot" onclick="jumpToSlide(3)"></div>
+                <div class="dot" onclick="jumpToSlide(4)"></div>
+                <div class="dot" onclick="jumpToSlide(5)"></div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="nav-buttons">
+                <button class="btn" onclick="prevSlide()">
+                    <!-- Left Arrow SVG -->
+                    <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                </button>
+                <button class="btn" onclick="nextSlide()">
+                    <!-- Right Arrow SVG -->
+                    <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const dots = document.querySelectorAll('.dot');
+        const progressBar = document.getElementById('progressBar');
+
+        function updateSlideVisibility() {
+            // Update active classes for slides
+            slides.forEach((slide, idx) => {
+                if (idx === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+
+            // Update active classes for dot indicators
+            dots.forEach((dot, idx) => {
+                if (idx === currentSlideIndex) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+
+            // Update progress line
+            const percentage = ((currentSlideIndex + 1) / slides.length) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+
+        function nextSlide() {
+            currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+            updateSlideVisibility();
+        }
+
+        // Add keyboard listener and slide index check
+        function prevSlide() {
+            currentSlideIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
+            updateSlideVisibility();
+        }
+
+        function jumpToSlide(index) {
+            currentSlideIndex = index;
+            updateSlideVisibility();
+        }
+
+        // Support Keyboard Arrow Keys
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Initialize progress line width
+        updateSlideVisibility();
+    </script>
+</body>
+</html>
